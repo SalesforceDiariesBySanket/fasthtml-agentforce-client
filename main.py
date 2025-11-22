@@ -164,18 +164,36 @@ def build_dynamic_ui(response: Dict[str, Any]) -> Any:
             if isinstance(msg, dict) and 'message' in msg:
                 message_text = msg.get('message', '').strip()
                 if message_text:
-                    return P(message_text, cls="mb-0")
+                    return P(message_text)
     
     # Fallback: show formatted response
-    return P(json.dumps(response, indent=2), cls="mb-0", style="font-size: 0.9em;")
+    return P(json.dumps(response, indent=2), style="font-size: 0.9em;")
 
-# FastHTML Application
-app, rt = fast_app(
-    hdrs=(
-        Link(rel='stylesheet', href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css'),
-        Script(src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js'),
-    )
-)
+# FastHTML Application with custom styling
+custom_css = Style("""
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.5; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; height: 100vh; display: flex; flex-direction: column; }
+    .alert { padding: 15px; margin: 20px 0; border-radius: 8px; }
+    .alert-warning { background-color: #fff3cd; border: 1px solid #ffc107; color: #856404; }
+    .alert-danger { background-color: #f8d7da; border: 1px solid #f5c2c7; color: #842029; }
+    .chat-container { flex: 1; padding: 20px; margin-bottom: 20px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #dee2e6; border-radius: 8px; }
+    .input-group { display: flex; flex-direction: column; gap: 10px; padding: 20px; border-top: 2px solid #dee2e6; background-color: #fff; }
+    .textarea { width: 100%; padding: 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 16px; font-family: inherit; resize: vertical; min-height: 80px; }
+    .textarea:focus { outline: none; border-color: #86b7fe; box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.25); }
+    .btn { padding: 12px 24px; border: none; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; width: 100%; transition: all 0.2s; }
+    .btn-primary { background-color: #0d6efd; color: white; }
+    .btn-primary:hover { background-color: #0b5ed7; }
+    .btn-primary:active { transform: scale(0.98); }
+    .user-bubble { background-color: #0d6efd; color: white; padding: 12px 16px; margin: 8px 0 8px 20%; border-radius: 18px 18px 4px 18px; }
+    .agent-bubble { background-color: #d1e7dd; color: #0f5132; padding: 12px 16px; margin: 8px 20% 8px 0; border-radius: 18px 18px 18px 4px; }
+    .error-bubble { background-color: #f8d7da; color: #842029; padding: 12px 16px; margin: 8px 20% 8px 0; border-radius: 18px 18px 18px 4px; }
+    .bubble p { margin: 0; }
+    .config-info { margin: 20px 0; padding: 0 20px; }
+    .config-info p { margin: 10px 0; }
+""")
+
+app, rt = fast_app(hdrs=(custom_css,))
 
 # Global client instance
 agentforce_client: Optional[AgentforceClient] = None
@@ -206,17 +224,20 @@ def home():
     if not config_valid:
         return Titled("Agentforce API Client - Configuration Required",
             Div(
-                P("Configuration Required", style="font-size: 1.5em; font-weight: bold;"),
-                P("Please set the following environment variables:"),
                 Div(
-                    P(" SALESFORCE_INSTANCE_URL - Your Salesforce org domain"),
-                    P(" SALESFORCE_CLIENT_ID - Connected app client ID"),
-                    P(" SALESFORCE_CLIENT_SECRET - Connected app client secret"),
-                    P(" SALESFORCE_AGENT_ID - Agent ID"),
-                    style="margin-left: 20px;"
+                    P("Configuration Required", style="font-size: 1.5em; font-weight: bold;"),
+                    P("Please set the following environment variables:"),
+                    Div(
+                        P("• SALESFORCE_INSTANCE_URL - Your Salesforce org domain"),
+                        P("• SALESFORCE_CLIENT_ID - Connected app client ID"),
+                        P("• SALESFORCE_CLIENT_SECRET - Connected app client secret"),
+                        P("• SALESFORCE_AGENT_ID - Agent ID"),
+                        cls="config-info"
+                    ),
+                    P("Create a .env file in the project root with these values."),
+                    cls="alert alert-warning"
                 ),
-                P("Create a .env file in the project root with these values."),
-                cls="alert alert-warning"
+                cls="container"
             )
         )
 
@@ -226,50 +247,34 @@ def home():
 
     return Titled("Agentforce AI Agent Chat",
         Div(
+            # Chat messages container - messages appear here
             Div(
-                # Chat messages container - messages appear here
-                Div(
-                    id="chat-container",
-                    cls="mb-4 p-3 rounded",
-                    style="height: 500px; overflow-y: auto; background-color: #f8f9fa; border: 1px solid #dee2e6;"
-                ),
-                
-                # Input form at the bottom
-                Form(
-                    Div(
-                        Div(
-                            Textarea(
-                                id="message",
-                                name="message",
-                                cls="form-control",
-                                rows=3,
-                                placeholder="Type your message and press Send...",
-                                style="resize: vertical;"
-                            ),
-                            cls="mb-2"
-                        ),
-                        Div(
-                            Button("Send Message", type="submit", cls="btn btn-primary w-100"),
-                            cls=""
-                        ),
-                        cls="mb-0"
-                    ),
-                    id="chat-form",
-                    method="post",
-                    action="/chat",
-                    hx_post="/chat",
-                    hx_target="#chat-container",
-                    hx_swap="beforeend swap:1s",
-                    hx_on__after_request="document.querySelector('#message').value = ''",
-                    cls="border-top pt-3"
-                ),
-                
-                cls="container-fluid"
+                id="chat-container",
+                cls="chat-container"
             ),
-            cls="d-flex flex-column",
-            style="height: 100vh;"
-        ),
-        style="padding: 0;"
+            
+            # Input form at the bottom
+            Form(
+                Textarea(
+                    id="message",
+                    name="message",
+                    cls="textarea",
+                    placeholder="Type your message and press Send...",
+                    required=True
+                ),
+                Button("Send Message", type="submit", cls="btn btn-primary"),
+                id="chat-form",
+                method="post",
+                action="/chat",
+                hx_post="/chat",
+                hx_target="#chat-container",
+                hx_swap="beforeend swap:1s",
+                hx_on__after_request="document.querySelector('#message').value = ''",
+                cls="input-group"
+            ),
+            
+            cls="container"
+        )
     )
 
 @rt('/chat', methods=['POST'])
@@ -278,7 +283,10 @@ async def chat(message: str):
     global agentforce_client, current_session_id
 
     if not agentforce_client:
-        return Div("Client not initialized", cls="alert alert-danger")
+        return Div(
+            P("Client not initialized"),
+            cls="error-bubble bubble"
+        )
 
     try:
         # Authenticate if not already done
@@ -294,9 +302,8 @@ async def chat(message: str):
 
         # Create user message bubble
         user_bubble = Div(
-            P(message, cls="mb-0"),
-            cls="mb-2 p-2 rounded",
-            style="background-color: #0d6efd; color: white; margin-left: 20%; border-radius: 8px;"
+            P(message),
+            cls="user-bubble bubble"
         )
 
         # Generate DYNAMIC UI based on response structure
@@ -305,24 +312,16 @@ async def chat(message: str):
         # Create agent message bubble with dynamic content
         agent_bubble = Div(
             dynamic_agent_ui,
-            cls="mb-2 p-3 rounded",
-            style="background-color: #d1e7dd; color: #0f5132; margin-right: 20%; border-radius: 8px;"
+            cls="agent-bubble bubble"
         )
 
         # Return both messages
-        response_html = Div(
-            user_bubble,
-            agent_bubble,
-            cls="chat-exchange"
-        )
-
-        return response_html
+        return Div(user_bubble, agent_bubble)
 
     except Exception as e:
         error_bubble = Div(
-            P(f"Error: {str(e)}", cls="mb-0"),
-            cls="mb-2 p-2 rounded",
-            style="background-color: #f8d7da; color: #842029; margin-right: 20%; border-radius: 8px;"
+            P(f"Error: {str(e)}"),
+            cls="error-bubble bubble"
         )
         return error_bubble
 
@@ -336,4 +335,3 @@ if __name__ == '__main__':
 
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
