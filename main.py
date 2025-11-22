@@ -41,7 +41,7 @@ class AgentforceClient:
         print(f"DEBUG: Authenticating with URL: {auth_url}")
         print(f"DEBUG: Client ID: {self.config.client_id[:10]}...")
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 auth_url,
                 data=data,
@@ -96,7 +96,7 @@ class AgentforceClient:
         print(f"DEBUG: Session data: {json.dumps(session_data, indent=2)}")
         print(f"DEBUG: Headers: {headers}")
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 session_url,
                 json=session_data,
@@ -138,7 +138,7 @@ class AgentforceClient:
             'Accept': 'application/json'
         }
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.post(
                 message_url,
                 json=message_data,
@@ -319,8 +319,10 @@ async def chat(message: str):
         return Div(user_bubble, agent_bubble)
 
     except Exception as e:
+        import traceback
+        error_details = f"Error: {str(e)}\n{traceback.format_exc()}"
         error_bubble = Div(
-            P(f"Error: {str(e)}"),
+            P(error_details.replace("\n", "<br>")),
             cls="error-bubble bubble"
         )
         return error_bubble
