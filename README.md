@@ -2,6 +2,9 @@
 
 A clean, production-ready web chat interface for Salesforce Agentforce API built with FastHTML and Python. No external frontend frameworks or legacy AJAX—only FastHTML, HTMX attributes, and pure CSS.
 
+<img width="958" height="473" alt="image" src="https://github.com/user-attachments/assets/33260236-3a6f-4cda-8fbd-b41b5b896b76" />
+
+
 ## ✨ Features
 
 - **Web Chat Interface** – Clean, modern UI with pure FastHTML and custom CSS (no Bootstrap)
